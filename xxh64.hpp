@@ -48,11 +48,27 @@ private:
     static constexpr uint64_t mix3 (const uint64_t h, const uint64_t v) {
         return (h ^ mix2 (v)) * PRIME1 + PRIME4;
     }
+#ifdef XXH64_BIG_ENDIAN
+    static constexpr uint32_t endian32 (const uint32_t v) {
+        return  ((v << 24) & 0xff000000) | ((v <<  8) & 0x00ff0000) |
+            ((v >>  8) & 0x0000ff00) | ((v >> 24) & 0x000000ff);
+    }
+    static constexpr uint64_t endian64 (const uint64_t v)
+    {
+        return  ((v << 56) & 0xff00000000000000ULL) | ((v << 40) & 0x00ff000000000000ULL) |
+                ((v << 24) & 0x0000ff0000000000ULL) | ((v << 8)  & 0x000000ff00000000ULL) |
+                ((v >> 8)  & 0x00000000ff000000ULL) | ((v >> 24) & 0x0000000000ff0000ULL) |
+                ((v >> 40) & 0x000000000000ff00ULL) | ((v >> 56) & 0x00000000000000ffULL);
+    }
+#else
+    static constexpr uint32_t endian32 (const uint32_t v) { return v; }
+    static constexpr uint64_t endian64 (const uint64_t v) { return v; }
+#endif
     static constexpr uint64_t fetch64 (const char *p, const uint64_t v = 0) {
-        return mix2 ((*reinterpret_cast<const uint64_t *> (p)), v);
+        return mix2 (endian64 (*reinterpret_cast<const uint64_t *> (p)), v);
     }
     static constexpr uint64_t fetch32 (const char *p) {
-        return uint64_t (*reinterpret_cast<const uint32_t *>(p)) * PRIME1;
+        return uint64_t (endian32 (*reinterpret_cast<const uint32_t *>(p))) * PRIME1;
     }
     static constexpr uint64_t fetch8 (const char *p) {
         return *reinterpret_cast<const uint8_t *>(p) * PRIME5;
