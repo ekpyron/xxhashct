@@ -3,6 +3,15 @@
 #include <cstdlib>
 #include <iostream>
 #include <array>
+#ifdef HAVE_XXHASH
+#include <xxhash.h>
+#endif
+
+template<uint64_t X>
+struct constexpr_test { static const uint64_t value = X; };
+
+constexpr_test<xxh32::hash("test", 4, 0)> constexprTest32;
+constexpr_test<xxh64::hash("test", 4, 0)> constexprTest64;
 
 bool checkhash_32 (const void* ptr, int len, uint32_t seed, uint32_t expected)
 {
@@ -11,22 +20,36 @@ bool checkhash_32 (const void* ptr, int len, uint32_t seed, uint32_t expected)
         std::cerr << "[xxh32] Test failed: 0x" << std::hex << hash << " != 0x" << std::hex << expected << std::endl;
         return false;
     }
+#ifdef HAVE_XXHASH
+    uint64_t ref = XXH32(ptr, len, seed);
+    if (hash != ref) {
+        std::cerr << "Test against reference implementation failed: 0x" << std::hex << hash << " != 0x" << std::hex << ref << std::endl;
+        return false;
+    }
+#endif
     return true;
 }
 
 bool checkhash_64 (const void *ptr, int len, uint64_t seed, uint64_t expected)
 {
-    uint64_t hash = xxh64::hash (reinterpret_cast<const char*> (ptr), len, seed);
+    uint64_t hash = xxh64::hash(reinterpret_cast<const char*> (ptr), len, seed);
     if (hash != expected) {
         std::cerr << "[xxh64] Test failed: 0x" << std::hex << hash << " != 0x" << std::hex << expected << std::endl;
         return false;
     }
+#ifdef HAVE_XXHASH
+    uint64_t ref = XXH64(ptr, len, seed);
+    if (hash != ref) {
+        std::cerr << "Test against reference implementation failed: 0x" << std::hex << hash << " != 0x" << std::hex << ref << std::endl;
+        return false;
+    }
+#endif
     return true;
 }
 
 int main (int argc, char *argv[])
 {
-    std::array<uint8_t, 101> data;
+    static std::array<uint8_t, 10100> data;
     static constexpr uint32_t prime = 2654435761U;
 
     uint32_t byteGen = prime;
@@ -43,8 +66,10 @@ int main (int argc, char *argv[])
     result_32 &= checkhash_32 (data.data (), 1, prime, 0xD5845D64U);
     result_32 &= checkhash_32 (data.data (), 14, 0, 0xE5AA0AB4U);
     result_32 &= checkhash_32 (data.data (), 14, prime, 0x4481951DU);
-    result_32 &= checkhash_32 (data.data (), data.size (), 0, 0x1F1AA412U);
-    result_32 &= checkhash_32 (data.data (), data.size (), prime, 0x498EC8E2U);
+    result_32 &= checkhash_32 (data.data (), 101, 0, 0x1F1AA412U);
+    result_32 &= checkhash_32 (data.data (), 101, prime, 0x498EC8E2U);
+    result_32 &= checkhash_32 (data.data (), data.size (), 0, 0x3931B56F);
+    result_32 &= checkhash_32 (data.data (), data.size (), prime, 0x44857AA1);
 
     if (result_32) std::cout << "xxh32 tests passed successfully." << std::endl;
 
@@ -56,8 +81,8 @@ int main (int argc, char *argv[])
     result_64 &= checkhash_64 (data.data (), 1, prime, 0x739840CB819FA723ULL);
     result_64 &= checkhash_64 (data.data (), 14, 0, 0xCFFA8DB881BC3A3DULL);
     result_64 &= checkhash_64 (data.data (), 14, prime, 0x5B9611585EFCC9CBULL);
-    result_64 &= checkhash_64 (data.data (), data.size (), 0, 0x0EAB543384F878ADULL);
-    result_64 &= checkhash_64 (data.data (), data.size (), prime, 0xCAA65939306F1E21ULL);
+    result_64 &= checkhash_64 (data.data (), data.size (), 0, 0x7570A206CFC74b78ULL);
+    result_64 &= checkhash_64 (data.data (), data.size (), prime, 0x95A9A4036AE9A784ULL);
 
     if (result_64) std::cout << "xxh64 tests passed successfully." << std::endl;
 

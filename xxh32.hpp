@@ -29,7 +29,7 @@
 
 struct xxh32 {
 	static constexpr uint32_t hash (const char *input, uint32_t len, uint32_t seed) {
-        return finalize((len >= 16 ? h16bytes((const uint8_t*)input, len, seed) : seed + PRIME5) + len, ((const uint8_t*)input) + (len & ~0xF), len & 0xF);
+        return finalize((len >= 16 ? h16bytes(input, len, seed) : seed + PRIME5) + len, (input) + (len & ~0xF), len & 0xF);
     }
 
 private:
@@ -57,35 +57,35 @@ private:
 	}
 
 #ifdef XXH32_BIG_ENDIAN
-	static constexpr uint32_t endian32 (const uint8_t*v) {
-        return uint32_t(v[3])|(uint32_t(v[2])<<8)
-               |(uint32_t(v[1])<<16)|(uint32_t(v[0])<<24);
+	static constexpr uint32_t endian32 (const char*v) {
+        return uint32_t(uint8_t(v[3]))|(uint32_t(uint8_t(v[2]))<<8)
+               |(uint32_t(uint8_t(v[1]))<<16)|(uint32_t(uint8_t(v[0]))<<24);
     }
 #else
-	static constexpr uint32_t endian32 (const uint8_t *v) {
-		return uint32_t(v[0])|(uint32_t(v[1]) << 8)
-				|(uint32_t(v[2]) << 16)|(uint32_t(v[3]) << 24);
+	static constexpr uint32_t endian32 (const char *v) {
+		return uint32_t(uint8_t(v[0]))|(uint32_t(uint8_t(v[1])) << 8)
+				|(uint32_t(uint8_t(v[2])) << 16)|(uint32_t(uint8_t(v[3])) << 24);
     }
 #endif // XXH32_BIG_ENDIAN
 
-	static constexpr uint32_t fetch32 (const uint8_t *p, const uint32_t v) {
+	static constexpr uint32_t fetch32 (const char *p, const uint32_t v) {
 		return round(v, endian32(p));
 	}
 
 	// Processes the last 0-15 bytes of p.
-	static constexpr uint32_t finalize (const uint32_t h, const uint8_t *p, uint32_t len) {
+	static constexpr uint32_t finalize (const uint32_t h, const char *p, uint32_t len) {
 		return
 			(len >= 4) ? finalize(rotl(h + (endian32(p) * PRIME3), 17) * PRIME4, p + 4, len - 4) :
-			(len > 0)  ? finalize(rotl(h + (*p * PRIME5), 11) * PRIME1, p + 1, len - 1) :
+			(len > 0)  ? finalize(rotl(h + (uint8_t(*p) * PRIME5), 11) * PRIME1, p + 1, len - 1) :
 			avalanche(h);
 	}
 
-	static constexpr uint32_t h16bytes (const uint8_t *p, uint32_t len, const uint32_t v1, const uint32_t v2, const uint32_t v3, const uint32_t v4) {
+	static constexpr uint32_t h16bytes (const char *p, uint32_t len, const uint32_t v1, const uint32_t v2, const uint32_t v3, const uint32_t v4) {
 		return
 			(len >= 16) ? h16bytes(p + 16, len - 16, fetch32(p, v1), fetch32(p+4, v2), fetch32(p+8, v3), fetch32(p+12, v4)) :
 			rotl(v1, 1) + rotl(v2, 7) + rotl(v3, 12) + rotl(v4, 18);
 	}
-	static constexpr uint32_t h16bytes (const uint8_t *p, uint32_t len, const uint32_t seed) {
+	static constexpr uint32_t h16bytes (const char *p, uint32_t len, const uint32_t seed) {
 		return h16bytes(p, len, seed + PRIME1 + PRIME2, seed + PRIME2, seed, seed - PRIME1);
 	}
 };
