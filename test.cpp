@@ -7,11 +7,17 @@
 #include <xxhash.h>
 #endif
 
-template<uint64_t X>
-struct constexpr_test { static const uint64_t value = X; };
+template<uint64_t value, uint64_t expected>
+struct constexpr_test { static_assert(value == expected, "Compile-time hash mismatch."); };
 
-constexpr_test<xxh32::hash("test", 4, 0)> constexprTest32;
-constexpr_test<xxh64::hash("test", 4, 0)> constexprTest64;
+constexpr_test<xxh32::hash("", 0, 0), 0x2CC5D05U> constexprTest_1;
+constexpr_test<xxh32::hash("", 0, 2654435761U), 0x36B78AE7U> constexprTest_2;
+constexpr_test<xxh64::hash("", 0, 0), 0xEF46DB3751D8E999ULL> constexprTest_3;
+constexpr_test<xxh64::hash("", 0, 2654435761U), 0xAC75FDA2929B17EFULL> constexprTest_4;
+constexpr_test<xxh32::hash("test", 4, 0), 0x3E2023CFU> constexprTest32_5;
+constexpr_test<xxh32::hash("test", 4, 2654435761U), 0xA9C14438U> constexprTest32_6;
+constexpr_test<xxh64::hash("test", 4, 0), 0x4fdcca5ddb678139ULL> constexprTest64_7;
+constexpr_test<xxh64::hash("test", 4, 2654435761U), 0x5A183B8150E2F651ULL> constexprTest64_8;
 
 bool checkhash_32 (const void* ptr, int len, uint32_t seed, uint32_t expected)
 {
